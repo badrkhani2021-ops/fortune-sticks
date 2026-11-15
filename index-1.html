@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fortune Sticks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600&family=Vazirmatn:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one centered column; neon glass tube of sticks above, reading card below. Single dark look by choice. */
+:root {
+  --bg1: #07051a;
+  --bg2: #150a30;
+  --gold: #e9c46a;
+  --gold-soft: #b8924a;
+  --cyan: #5ee7ff;
+  --magenta: #c264ff;
+  --red: #b3262e;
+  --ink: #eef0ff;
+  --muted: #9a98c4;
+  --card: rgba(18, 12, 44, 0.72);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background-color: var(--bg1);
+  background-image: radial-gradient(ellipse at 50% 0%, var(--bg2), var(--bg1) 70%);
+  background-attachment: fixed;
+  color: var(--ink);
+  min-height: 100%;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  font-family: "Cinzel", "Vazirmatn", Georgia, "Noto Serif", serif;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body:lang(fa), body:lang(ar) { font-family: "Vazirmatn", Tahoma, "Noto Naskh Arabic", sans-serif; }
+body:lang(zh) { font-family: "Noto Serif SC", "Songti SC", "SimSun", serif; }
+
+.grid-bg {
+  position: fixed; inset: 0; pointer-events: none; opacity: .35;
+  background-image:
+    linear-gradient(rgba(94,231,255,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94,231,255,.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 50% 40%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 20%, transparent 75%);
+}
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.top { display: flex; justify-content: flex-end; padding: 14px 0 0; position: relative; z-index: 5; }
+.lang select {
+  background: rgba(18,12,44,.8); color: var(--ink);
+  border: 1px solid rgba(94,231,255,.4); border-radius: 999px;
+  padding: 8px 14px; font: inherit; font-size: 14px;
+}
+
+main { max-width: 560px; margin: 0 auto; padding: 8px 0 56px; min-width: 0; text-align: center; position: relative; z-index: 2; }
+
+h1 {
+  margin: 8px 0 4px; font-size: clamp(28px, 8vw, 40px); letter-spacing: .12em; font-weight: 700;
+  background: linear-gradient(90deg, var(--gold), var(--cyan), var(--magenta));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.sub { margin: 0 0 8px; color: var(--muted); font-size: 15px; letter-spacing: .04em; }
+
+/* ---------- stick box ---------- */
+.stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.box { position: relative; width: 190px; height: 400px; margin-top: 8px; }
+
+.sticks { position: absolute; left: 0; right: 0; bottom: 30px; height: 0; }
+.stick {
+  position: absolute; bottom: 0; left: 50%; width: 11px; height: 280px;
+  margin-left: -5.5px; border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(90deg, #24120a, #5a3418 50%, #24120a);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.5);
+  transform-origin: 50% 100%;
+  transform: translateX(var(--x, 0)) rotate(var(--r, 0deg));
+}
+.stick::before { /* red painted tip */
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 12px;
+  background: var(--red); border-radius: 3px 3px 0 0;
+}
+.zh {
+  position: absolute; top: 17px; left: 50%; transform: translateX(-50%);
+  writing-mode: vertical-rl; text-orientation: upright;
+  font-family: "Ma Shan Zheng", "Noto Serif SC", "Songti SC", "SimSun", serif;
+  font-size: 9px; line-height: 1.05; color: var(--gold);
+}
+
+.stick.chosen {
+  width: 26px; margin-left: -13px; height: 280px; bottom: 30px; z-index: 2;
+  transform: translateY(100px); opacity: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.5), 0 0 0 rgba(233,196,106,0);
+  transition: transform 1.3s cubic-bezier(.2,.8,.2,1), opacity .3s, box-shadow 1.3s;
+}
+.stick.chosen::before { height: 18px; }
+.stick.chosen .num {
+  position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
+  writing-mode: vertical-rl; text-orientation: upright;
+  font-family: "Ma Shan Zheng", "Noto Serif SC", "Songti SC", "SimSun", serif;
+  font-size: 21px; line-height: 1.15; color: var(--gold);
+  text-shadow: 0 0 10px rgba(233,196,106,.7);
+}
+.box.out .stick.chosen {
+  opacity: 1; transform: translateY(-95px);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.5), 0 0 26px rgba(233,196,106,.6);
+}
+
+.tube-front {
+  position: absolute; left: 10px; right: 10px; bottom: 30px; height: 170px; z-index: 3;
+  border: 2px solid #d9b050; border-radius: 12px 12px 8px 8px; overflow: hidden;
+  background: linear-gradient(90deg, #5a0b10, #b3262e 22%, #d23a38 40%, #a11d24 62%, #5a0b10);
+  box-shadow: 0 0 26px rgba(233,196,106,.35), 0 0 46px rgba(94,231,255,.16), inset 0 0 18px rgba(0,0,0,.45);
+}
+.tube-front svg { display: block; width: 100%; height: 100%; }
+
+.tube-base {
+  position: absolute; left: 4px; right: 4px; bottom: 14px; height: 18px; z-index: 4;
+  border-radius: 6px; background: linear-gradient(180deg, #7a1118, #3d070b);
+  border: 1.5px solid #d9b050;
+  box-shadow: 0 0 18px rgba(233,196,106,.4);
+}
+
+@keyframes shake {
+  0%   { transform: translate(0,0) rotate(0); }
+  10%  { transform: translate(-7px,-5px) rotate(-5deg); }
+  20%  { transform: translate(8px,3px) rotate(5deg); }
+  30%  { transform: translate(-6px,6px) rotate(-4deg); }
+  40%  { transform: translate(7px,-4px) rotate(4deg); }
+  50%  { transform: translate(-8px,2px) rotate(-5deg); }
+  60%  { transform: translate(6px,-6px) rotate(4deg); }
+  70%  { transform: translate(-5px,4px) rotate(-3deg); }
+  80%  { transform: translate(5px,-2px) rotate(3deg); }
+  100% { transform: translate(0,0) rotate(0); }
+}
+.box.shaking { animation: shake .42s linear 3; }
+.box.shaking .tube-front { box-shadow: 0 0 40px rgba(233,196,106,.7), 0 0 60px rgba(94,231,255,.35), inset 0 0 22px rgba(0,0,0,.4); }
+
+.draw, .ghost {
+  font: inherit; cursor: pointer; color: var(--ink);
+  border-radius: 999px; letter-spacing: .1em;
+}
+.draw {
+  margin-top: 6px; padding: 14px 44px; font-size: 18px; font-weight: 600;
+  background: linear-gradient(135deg, rgba(233,196,106,.25), rgba(194,100,255,.25));
+  border: 1.5px solid var(--gold);
+  box-shadow: 0 0 22px rgba(233,196,106,.35);
+  transition: transform .15s, box-shadow .2s;
+}
+.draw:hover { box-shadow: 0 0 32px rgba(233,196,106,.6); }
+.draw:active { transform: scale(.97); }
+.draw:disabled { opacity: .5; cursor: default; }
+
+/* ---------- reading ---------- */
+.reading {
+  margin-top: 28px; padding: 26px 22px 22px; text-align: center;
+  background: var(--card); border: 1px solid rgba(94,231,255,.35); border-radius: 18px;
+  box-shadow: 0 0 40px rgba(94,231,255,.12), inset 0 0 30px rgba(194,100,255,.08);
+  animation: rise .9s ease both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+.badge {
+  display: inline-block; min-width: 64px; padding: 6px 18px; border-radius: 999px;
+  border: 1.5px solid var(--gold); color: var(--gold); font-size: 22px; font-weight: 700;
+  box-shadow: 0 0 16px rgba(233,196,106,.4);
+}
+.note { color: var(--cyan); font-size: 13px; margin: 14px 0 0; opacity: .85; }
+.text {
+  margin: 18px 0 22px; font-size: 19px; line-height: 1.95; white-space: pre-line;
+  color: var(--ink);
+}
+body:lang(fa) .text, body:lang(ar) .text { line-height: 2.2; }
+.text.empty { color: var(--muted); font-size: 15px; }
+
+.actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.ghost {
+  padding: 10px 22px; font-size: 14px; background: transparent;
+  border: 1px solid rgba(94,231,255,.5);
+}
+.ghost:hover { background: rgba(94,231,255,.1); }
+
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .box.shaking { animation-duration: .2s; animation-iteration-count: 2; }
+  .stick.chosen { transition-duration: .3s; }
+  .reading { animation: none; }
+}
+
+.wishline { margin: 16px 0 0; font-size: 16px; font-weight: 600; letter-spacing: .03em; color: var(--gold); }
+.translate { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin: 0 0 18px; padding-top: 16px; border-top: 1px solid rgba(94,231,255,.2); }
+.translate select { background: rgba(18,12,44,.8); color: var(--ink); border: 1px solid rgba(94,231,255,.4); border-radius: 999px; padding: 8px 12px; font: inherit; font-size: 14px; max-width: 100%; min-width: 0; }
+.translate a.ghost { text-decoration: none; display: inline-block; }
+.trnote { flex-basis: 100%; font-size: 12px; color: var(--muted); }
+.linkout { margin: 14px 0 0; font-size: 13px; color: var(--cyan); word-break: break-all; user-select: all; -webkit-user-select: all; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+
+<header class="top">
+  <label class="lang">
+    <span class="sr" id="langLabel">Language</span>
+    <select id="langSelect" aria-labelledby="langLabel"></select>
+  </label>
+</header>
+
+<main>
+  <h1 id="title">Fortune Sticks</h1>
+  <p class="sub" id="subtitle">Quiet your mind. Shake the box.</p>
+
+  <section class="stage" aria-live="polite">
+    <div class="box" id="box">
+      <div class="sticks" id="sticks" aria-hidden="true"></div>
+      <div class="stick chosen" id="chosen" aria-hidden="true">
+        <span class="num" id="chosenNum"></span>
+      </div>
+      <div class="tube-front" aria-hidden="true">
+        <svg viewBox="0 0 166 166" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+          <defs>
+            <linearGradient id="gld" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#f7e3a0"/><stop offset=".5" stop-color="#d4a640"/><stop offset="1" stop-color="#9a6f1c"/>
+            </linearGradient>
+            <pattern id="key" width="12" height="8" patternUnits="userSpaceOnUse">
+              <path d="M1 7V1h10v6H4V4h4" fill="none" stroke="#e9c46a" stroke-width="1"/>
+            </pattern>
+            <path id="cloud" d="M8 52 A5 5 0 0 1 11 43 A6 6 0 0 1 22 40 A6 6 0 0 1 31 46 A4 4 0 0 1 30 52 Z" fill="none" stroke="#e9c46a" stroke-width="1.1"/>
+          </defs>
+
+          <rect x="0" y="0" width="166" height="8" fill="url(#gld)"/>
+          <rect x="0" y="8" width="166" height="1.5" fill="#5a0b10"/>
+          <rect x="4" y="11" width="158" height="8" fill="url(#key)"/>
+
+          <!-- clouds and auspicious characters -->
+          <use href="#cloud"/>
+          <use href="#cloud" transform="translate(166 0) scale(-1 1)"/>
+          <text x="22" y="72" text-anchor="middle" font-size="17" fill="#e9c46a" font-family="'Ma Shan Zheng','Noto Serif SC',serif">福</text>
+          <text x="144" y="72" text-anchor="middle" font-size="17" fill="#e9c46a" font-family="'Ma Shan Zheng','Noto Serif SC',serif">壽</text>
+
+          <!-- seated idol in a medallion -->
+          <circle cx="83" cy="56" r="27" fill="#4a070b" stroke="url(#gld)" stroke-width="1.8"/>
+          <circle cx="83" cy="56" r="23" fill="none" stroke="#e9c46a" stroke-width=".6" stroke-dasharray="1.5 2.5"/>
+          <circle cx="83" cy="45" r="9.5" fill="none" stroke="#e9c46a" stroke-width=".9"/>
+          <circle cx="83" cy="45" r="4.6" fill="url(#gld)"/>
+          <path d="M82 40.5 Q83 38 84 40.5" fill="none" stroke="#e9c46a" stroke-width=".8"/>
+          <path d="M69 78 C69 64 76 56 83 53.5 C90 56 97 64 97 78 Z" fill="url(#gld)"/>
+          <path d="M72 71 Q83 63 94 71" fill="none" stroke="#7a1015" stroke-width="1.3"/>
+          <path d="M80 62 L83 58 L86 62" fill="none" stroke="#7a1015" stroke-width="1"/>
+          <path d="M65 78 Q74 71 83 78 Q92 71 101 78" fill="none" stroke="#e9c46a" stroke-width="1.2"/>
+
+          <!-- dragon -->
+          <path d="M8 128 C22 106 38 146 56 124 S88 102 104 122" fill="none" stroke="url(#gld)" stroke-width="9" stroke-linecap="round"/>
+          <path d="M8 128 C22 106 38 146 56 124 S88 102 104 122" fill="none" stroke="#8e1218" stroke-width="9" stroke-linecap="round" stroke-dasharray="1.4 4.2" opacity=".65"/>
+          <path d="M8 128 C22 106 38 146 56 124 S88 102 104 122" fill="none" stroke="#fbeab0" stroke-width="1" stroke-linecap="round" stroke-dasharray="1 6" opacity=".8"/>
+          <path d="M8 128 L2 121 M8 128 L1 130 M10 127 L5 118" fill="none" stroke="#e9c46a" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M34 138 L32 146 M32 146 l-4 1 M32 146 l1 4 M32 146 l4 2" fill="none" stroke="#e9c46a" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M74 112 L78 122 M78 122 l-4 2 M78 122 l1 5 M78 122 l5 1" fill="none" stroke="#e9c46a" stroke-width="1.4" stroke-linecap="round"/>
+          <g transform="translate(104 122) rotate(-14)">
+            <path d="M2 -4 C-2 -10 -6 -6 -9 -11 M3 -2 C-3 -4 -8 1 -11 -3" fill="none" stroke="#e9c46a" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M6 -8 C8 -16 14 -19 20 -20 M11 -8 C14 -13 20 -15 25 -14" fill="none" stroke="url(#gld)" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M0 -3 C6 -10 18 -10 30 -6 L24 -2 L31 3 L22 3 C14 10 4 10 0 3 Z" fill="url(#gld)"/>
+            <circle cx="11" cy="-3" r="1.9" fill="#7a0f14"/>
+            <circle cx="26" cy="-4" r=".9" fill="#7a0f14"/>
+            <path d="M28 -4 C36 -10 42 -2 50 -8 M28 2 C36 8 42 0 50 6" fill="none" stroke="#e9c46a" stroke-width="1" stroke-linecap="round"/>
+          </g>
+          <!-- flaming pearl -->
+          <circle cx="146" cy="101" r="5" fill="url(#gld)"/>
+          <path d="M141 97 C138 92 143 92 141 86 M146 95 C144 90 148 89 147 83 M151 97 C154 92 150 91 153 86" fill="none" stroke="#e9c46a" stroke-width="1" stroke-linecap="round"/>
+
+          <rect x="4" y="151" width="158" height="8" fill="url(#key)"/>
+          <rect x="0" y="156.5" width="166" height="1.5" fill="#5a0b10"/>
+          <rect x="0" y="158" width="166" height="8" fill="url(#gld)"/>
+        </svg>
+      </div>
+      <div class="tube-base" aria-hidden="true"></div>
+    </div>
+    <button class="draw" id="drawBtn" type="button">Shake</button>
+  </section>
+
+  <article class="reading" id="reading" hidden>
+    <div class="reading-head"><span class="badge" id="readingNum"></span></div>
+    <p class="note" id="readingNote" hidden></p>
+    <p class="wishline" id="readingHeader" hidden></p>
+    <p class="text" id="readingText"></p>
+    <div class="translate" id="translateRow">
+      <label class="sr" for="trSelect" id="trLabel">Translate to</label>
+      <select id="trSelect"></select>
+      <a class="ghost" id="trLink" href="https://translate.google.com/" target="_blank" rel="noopener noreferrer">Translate</a>
+      <span class="trnote" id="trNote"></span>
+    </div>
+    <div class="actions">
+      <button type="button" class="ghost" id="againBtn">Draw again</button>
+      <button type="button" class="ghost" id="copyBtn">Copy link</button>
+    </div>
+    <p class="linkout" id="linkOut" hidden></p>
+  </article>
+</main>
+
+<script>
+/*
+  READINGS FILE: this is the only file you need to edit to add your riddles.
+
+  Each number from 1 to 60 has one slot per language.
+  Put your exact text between the quotes. Nothing is added or changed by the app.
+
+  Example:
+    1: { en: "Your English riddle here", fa: "معمای فارسی شما اینجا" },
+
+  - For a line break inside a reading, write \n
+  - To add another language (for example Chinese), add  zh: "..."  to the number.
+    The language must also be listed in LANGS in app.js (zh is already there).
+  - If a reading is empty in the chosen language, the app shows it in another
+    language you've filled in (with a small note), or a "not added yet" message.
+*/
+window.READING_HEADER = {
+  en: "Make a wish before you shake the box for your fortune.",
+  fa: ""
+};
+window.READINGS = {
+  1:  { en: "YOUR LUCK FOR TODAY–\nYour fortune for today is \"One\",\nNo–business matters should be done.\nYOUR FORTUNE–\nNot liked at heart by many friends\nYou never ought to roam,\nBut stick to close relations\nwhere your works is best, at home\nExpect soon a letter of great importance\nYou will not get your wish", fa: "" },
+  2:  { en: "YOUR LUCK FOR TODAY–\nYour number for today is \"Two\",\nThe best of luck it means for you.\nYOUR FORTUNE–\nBe careful in your actions,\nYour love affairs seem wrong,\nIf you do not use discretion,\nYou'll ruin them all ere long\nA long journey soon from which you will benefit\nYou will get your wish.", fa: "" },
+  3:  { en: "YOUR LUCK FOR TODAY–\nThe fates have given you number \"Three\",\nAnd it's only fair for thine and thee.\nYOUR FORTUNE–\nYour future fortune surely good\nfor maid, man or wife,\nWith riches and the great respect\nof people high in life.\nExpect soon a letter bringing important news.\nLater on you may get your wish.", fa: "" },
+  4:  { en: "YOUR LUCK FOR TODAY–\nYour number for today is \"Four\",\nIt's only fair, don't wish for more.\nYOUR FORTUNE–\nYour mate in life will bring you luck\nand be your guiding star,\nSo cherish either him or her\nor success you'll surely bar.\nBeware of fatal extravagance.\nYour wish is doubtful.", fa: "" },
+  5:  { en: "YOUR LUCK FOR TODAY–\nIf \"Five\" you draw, your luck today\nwill be the best, the fates so say.\nYOUR FORTUNE–\nThe fates predict your best success\nwill come through life of trade,\nBut work alone, no partner take\nor you'll lose what you have made.\nYou will be lucky in speculations.\nYou will get your wish.", fa: "" },
+  6:  { en: "YOUR LUCK FOR TODAY–\nIf you gamble, you must play\nnumber \"Six\", it's good today\nYOUR FORTUNE–\nThe fates have given you talent,\nthey've also given you skill,\nThese gifts will bring success in life\nif you do not use them ill.\nThe next favor you wish for will be granted.\nYou will get your wish.", fa: "" },
+  7:  { en: "YOUR LUCK FOR TODAY–\nLucky \"Seven\", sages say\nIs always good, it's yours today\nYOUR FORTUNE–\nLoved for yourself and self alone\nYour life should happy be\nSo bless this gift that's given to you\nthrough life and eternity.\nA strange home within a year.\nYou will get your wish.", fa: "" },
+  8:  { en: "YOUR LUCK FOR TODAY–\nIf today you draw an \"Eight\",\nAll business schemes had better wait.\nYOUR FORTUNE–\nA dream you'll have and be so sad\nBad luck it will pertend\nBut disregard the evil sign\nIt will come right in the end\nYou have a secret rival.\nYou will not get your wish.", fa: "" },
+  9:  { en: "YOUR LUCK FOR TODAY–\nYour luck for today is number \"Nine\"\nThe fates declare is very fine.\nYOUR FORTUNE–\nIf you would win success in life\nBe honest, straight and true\nFor otherwise your plans will fail\nAnd ill luck will ensue.\nThere's a great temptation in store for you\nYou will get your wish.", fa: "" },
+  10: { en: "YOUR LUCK FOR TODAY–\nA most peculiar thing today\nabout this Number \"Ten\"\nIt's good for all the women\nAnd bad for all the men.\nYOUR FORTUNE–\nA friend of yours has crossed the sea\nFor love and riches, too\nBy one or both you'll benefit\nA great surprise for you\nMany changes at hand\nYour wish depends on your own efforts.", fa: "" },
+  11: { en: "YOUR LUCK FOR TODAY–\nYour number is odd, a double \"One\"\nToday all propositions shun\nYOUR FORTUNE–\nIf you're married, have a care\nYour mate may prove untrue\nIf you're single, you're deceived\nThe fates are warning you\nYou will lose a friend.\nYour wish is not a wise one.", fa: "" },
+  12: { en: "YOUR LUCK FOR TODAY–\nA lucky number since scriptural kings\nSuccess to all your plans it brings\nYOUR FORTUNE–\nThe fates are prophesying thus\nTwo mates in life for you\nThe first of which will be the best\nYou'll regret it when there's two.\nA hasty quarrel through a trifle\nYour wish will be granted soon", fa: "" },
+  13: { en: "YOUR LUCK FOR TODAY–\n\"Thirteen\", today, you'll not succeed\nAnd money deals be bad indeed\nYOUR FORTUNE–\nSomeone's very fond of you,\nso let your actions be,\nBoth kind and just, lest little ills\nCause woe to thine and thee.\nYou will lose an old man friend that you have depended upon.\nYour wish is not possible.", fa: "" },
+  14: { en: "YOUR LUCK FOR TODAY–\nSign no contract, write no letter.\nTomorrow's luck will be much better.\nYOUR FORTUNE–\nIf you're single, lone you'll be\nBut wed quite late in life,\nBut if you're married, you will have\nA scolding man or wife\nYou will sow with toil, but reap a rich harvest\nYou will get your wish in one week.", fa: "" },
+  15: { en: "YOUR LUCK FOR TODAY–\nTen and Five is sure to mean\nthe best of luck, for they make \"Fifteen\".\nYOUR FORTUNE–\nIn great demand for social things\nAt dinners, play or ball,\nYou'll win new friends and keep the old\nand be beloved by all.\nAn unpleasant and expensive experience by which you will afterwards benefit\nYou will get your wish.", fa: "" },
+  16: { en: "YOUR LUCK FOR TODAY–\n\"Sixteen\", number only fair\nand means for you a day of care\nYOUR FORTUNE–\nSuccess in wealth and legal things\nYour fortune is the best,\nThe fates regret you'll not succeed\nin love like all the rest.\nA sudden journey with a pleasant fellow traveller\nYou will get your wish, but only by hard work.", fa: "" },
+  17: { en: "YOUR LUCK FOR TODAY–\n\"Seventeen\", a warning fear,\ndrink no liquor, danger near\nYOUR FORTUNE–\nSuccess in life and love affairs,\ngreat wealth you will attain,\nthey're all for you if you'll be firm\nand from drinking will abstain.\nDeceit from an unexpected quarter.\nYour wish depends upon yourself.", fa: "" },
+  18: { en: "YOUR LUCK FOR TODAY–\nGood old number for today\nGames of chance are sure to pay\nYOUR FORTUNE–\nYou have a wish, an ardent hope\nBy you most highly prised\nThe fates decree your luck is good\nThey'll soon be realised\nA sudden acquaintance which will be to your pleasure and benefit.\nYou will get your wish.", fa: "" },
+  19: { en: "YOUR LUCK FOR TODAY–\nLoan no money on this day,\nif you do, they'll not repay.\nYOUR FORTUNE–\nThough your troubles seem so great,\nbe firm and do not quail.\nHave courage in yourself, dear friend\nYou'll win! You cannot fail.\nExpect a letter of abuse from one whom you thought a friend.\nA good chance for your wish.", fa: "" },
+  20: { en: "YOUR LUCK FOR TODAY–\nIf you draw the number \"Twenty\",\na happy day and luck a–plenty.\nYOUR FORTUNE–\nA contract or a business deal\nwill be submitted soon.\nThe fates advise great care by you.\nSome tricks may be your ruin.\nYour native will should be your fortune.\nYou will get your wish.", fa: "" },
+  21: { en: "YOUR LUCK FOR TODAY–\nThe number drawn is \"Twenty–one\",\nNo day for gain, but lots of fun.\nYOUR FORTUNE–\nThe fates decree you're apt to be\nan heir to land and wealth,\nBut don't depend on this but work\nand win success yourself.\nYou'll receive a legacy from an almost unknown and not much respected relative.\nYou will get your wish. But not very soon.", fa: "" },
+  22: { en: "YOUR LUCK FOR TODAY–\nA tricky number, \"Twenty–two\"\nUsually good–it's up to you\nYOUR FORTUNE–\nA temperament not suitable\nfor a life of married bliss\nYou'll be better off unmarried,\nBe you single man or miss.\nA matter of considerable importance soon which must be decided by yourself alone.\nYou have made an impossible wish.", fa: "" },
+  23: { en: "YOUR LUCK FOR TODAY–\nYou've drawn a number \"Twenty–three\"\nGood luck for thine and thee.\nYOUR FORTUNE–\nYour gifts of conversation seem\nto bring you many friends,\nbut the one to keep them, bear in mind\nNever borrows, neither lends.\nYou have made a deep impression on someone dear to you.\nYou will get your wish.", fa: "" },
+  24: { en: "YOUR LUCK FOR TODAY–\nTo one who draws a \"Twenty–four\",\nBad luck on water, good on shore.\nYOUR FORTUNE–\nA country life is best for you\nFor there you'll happy be,\nAnd strength and wealth you will obtain\nSo be advised by me\nYou should change your habits, for some of them are not good.\nOnly a fair chance to get your wish.", fa: "" },
+  25: { en: "YOUR LUCK FOR TODAY–\nA wish today, if made by you\nis almost certain to come true.\nYOUR FORTUNE–\nA nature full of hopefulness,\nBad luck you cannot see\nYour cheerfulness will win success\nin what you wish to be.\nYou'll be enriched through a foreigner whom you have never seen.\nYou will get your wish.", fa: "" },
+  26: { en: "YOUR LUCK FOR TODAY–\nTwo and six, bad today.\nGames of chance will not pay.\nYOUR FORTUNE–\nInclined to be a trifle gay\nYou'd better soon behave,\nGood fellowship is good sometimes,\nBut it ruins your chance to save.\nBad day to wish. Try tomorrow.", fa: "" },
+  27: { en: "YOUR LUCK FOR TODAY–\nOf all the number known to men\nThis is the worst, so draw again.\nYOUR FORTUNE–\nA little trouble is your lot,\nBad health the fates pertend.\nBut don't give up, you're sure to be successful in the end.\nChanges every seven years will occur to you.\nYou will get your wish before the year is out.", fa: "" },
+  28: { en: "YOUR LUCK FOR TODAY–\nThe best of numbers, \"Twenty–eight\",\nYour chance is good, don't hesitate.\nYOUR FORTUNE–\nThough ambitious for your future,\nand impatient for success,\nonly quiet perseverance\nBrings a lasting happiness.\nA surprise and a strange bed.\nYou will get your wish.", fa: "" },
+  29: { en: "YOUR LUCK FOR TODAY–\nTo one who draws a \"Twenty–nine\",\nThe fates decree your luck is fine.\nYOUR FORTUNE–\nYour life will be most vigorous\nin action, full of strife.\nYou'll fight your way through all of it\nAnd live a good, long life.\nYou will not wed your first love, but the loss is to your benefit.\nYou will get your wish.", fa: "" },
+  30: { en: "YOUR LUCK FOR TODAY–\nToday is good for luck, it seems,\nand very good for business schemes.\nYOUR FORTUNE–\nA life that's given to serious things,\nNo sentimental side,\nYour time is a slave to business cares,\nA nature kind does hide.\nSomeone seeks revenge for an imaginary wrong.\nYour love wish–No. Business wish–Yes.", fa: "" },
+  31: { en: "YOUR LUCK FOR TODAY–\nNo better number under the sun\nthan yours today, a \"Thirty–one\"\nYOUR FORTUNE–\nNo matter what your business be\nInherent in you lies\nThe power to please historically,\nTo fame and power rise.\nYou will soon receive important news that will change your residence.\nYou will get your wish.", fa: "" },
+  32: { en: "YOUR LUCK FOR TODAY–\nNo journey take by rail or sea,\nOr calamity may happen thee\nYOUR FORTUNE–\nIndecision marks your life,\nThat otherwise should be\nA great success, if you'll improve your opportunity.\nTrust to the wisdom of a good friend, who will advise something for your good.\nWish something possible.", fa: "" },
+  33: { en: "YOUR LUCK FOR TODAY–\nYou've drawn, it seems, a double \"Three\"\nNo luck at all today for thee.\nYOUR FORTUNE–\nYou seem to be well satisfied,\nWith self and your affairs.\nBut you would be much happier,\nBy assuming others' cares\nA dark woman will soon cause you trouble.\nYou will not get your wish.", fa: "" },
+  34: { en: "YOUR LUCK FOR TODAY–\nIf today a chance you see,\nAccept at once, it's good for thee.\nYOUR FORTUNE–\nYou're bound to have experience\nAdventures, ups and downs.\nBut riches will be few to you,\nFew cares and fewer frowns.\nA strange letter with a strange proposal very soon.\nYou will get your wish.", fa: "" },
+  35: { en: "YOUR LUCK FOR TODAY–\nYour luck is only fair today,\nLittle sunshine, little hay.\nYOUR FORTUNE–\nYou're apt to be too careless,\nTowards habits loose you're bent\nThey'll never bring you happiness\nNor any great content\nYou will soon have a pleasant adventure.\nYou may get your wish later on", fa: "" },
+  36: { en: "YOUR LUCK FOR TODAY–\nYou're bound to have a pleasant day,\nFor luck or love it's yours to say.\nYOUR FORTUNE–\nYou've years of happiness in store,\nBut, friend, be warned in time,\nHard luck is apt to visit you,\nIf so, twill be through wine.\nUnexpected money and happiness before you\nYou will get your wish.", fa: "" },
+  37: { en: "YOUR LUCK FOR TODAY–\nA lucky number for today.\nIt's good for you in every way.\nYOUR FORTUNE–\nThe fates don't favor racing.\nGames of chance they don't advise\nBut just the same you'll speculate\nAnd win, if you are wise.\nYou will soon meet with ingratitude.\nYou will get your wish.", fa: "" },
+  38: { en: "YOUR LUCK FOR TODAY–\nYou've drawn today a \"Thirty–eight\"\nFor signing papers better wait.\nYOUR FORTUNE–\nYour fortune is a warning.\nFor fate around you weaves\nA loss of wealth or jewelery\nThrough carelessness or thieves.\nYou'll have a merry night, followed by unpleasant consequences.\nYou will get your wish.", fa: "" },
+  39: { en: "YOUR LUCK FOR TODAY–\nYou've drawn today a \"Thirty–nine\"\nFor business deals it's very fine.\nYOUR FORTUNE–\nA fortune is your aim in life.\nYour firm and main desire,\nyou'll struggle hard, but don't give up,\nyou'll win if you don't tire.\nYou have made a hasty promise that you regret but must keep.\nYou will get your wish.", fa: "" },
+  40: { en: "YOUR LUCK FOR TODAY–\nKeep from lawyers for today\nOf course of law in any way\nYOUR FORTUNE–\nA treasure great the fates declare\nAround you seems to hover\nAnd what it is in gold or love\nYou'll very soon discover.\nExpect temporary trouble through a telegram.\nYour wish will come when you least expect it.", fa: "" },
+  41: { en: "YOUR LUCK FOR TODAY–\nThe one who draws a \"Forty–one\"\nIs the luckiest person under the sun.\nYOUR FORTUNE–\nGreat success is promised you\nthe best in lumber trade\nOr anything in which there's wood,\nIf you heed, your fortune's made.\nA light person very jealous will bring a quarrel soon.\nYou will get your wish.", fa: "" },
+  42: { en: "YOUR LUCK FOR TODAY–\nYour number is bad for luck today,\nBut if you hustle sure to pay,\nYOUR FORTUNE–\nBy what's a called luck you'll never thrive,\nBut you'll never be in need,\nYou're sure to be industrious,\nBy hard work you'll succeed.\nA long sought position in life will soon be yours.\nYou will get your wish if you work for it.", fa: "" },
+  43: { en: "YOUR LUCK FOR TODAY–\nIf on a trip you'd go away\nA lucky time to start today\nYOUR FORTUNE–\nIndications point one way\nA journey long for you,\nA life of luck and happiness\nWill surely then ensue.\nA great honor will soon come to you.\nYou will get your wish.", fa: "" },
+  44: { en: "YOUR LUCK FOR TODAY–\n\"Forty–four\" for luck today,\nBut afterward it's hard to say.\nYOUR FORTUNE–\nIf you would win success in life\nBeware of being vain,\nRemember that by work alone\nYou'll cultivate your brain\nLook for treason from a friend.\nYou have made an unreasonable wish", fa: "" },
+  45: { en: "YOUR LUCK FOR TODAY–\nA day to rest, you'd better shirk\nAll kinds of mental overwork.\nYOUR FORTUNE–\nIf your business be in metal,\nYou will always be well heeled,\nIf it's mining or in trade,\nThe fates have not revealed.\nA dark person is jealous of you\nYour wish is doubtful.", fa: "" },
+  46: { en: "YOUR LUCK FOR TODAY–\nYou must careful be today\nLest some evil come your way\nYOUR FORTUNE–\nA life of prominence your wish.\nYou've wit and talent, too,\nThe fates agree the stage would be\na great success for you.\nBeware of false friends, someone you trust is a secret enemy.\nYou'll get your wish in six months", fa: "" },
+  47: { en: "YOUR LUCK FOR TODAY–\nYour luck is simply grand today,\nFor business or in chance twill pay\nYOUR FORTUNE–\nThe fates all seem to indicate\nYou'll live a ripe old age\nAnd honor great will be conferred\nIn music or on the stage\nA great rise in life, and soon.\nYou will get your wish.", fa: "" },
+  48: { en: "YOUR LUCK FOR TODAY–\n\"Forty–eight\" is good today\nFor games of chance if inclined that way\nYOUR FORTUNE–\nIf you would use the talent\nFate has given you to write.\nYou'd win success in prose or verse,\nIn serious themes or light.\nA long delayed package of value will shortly come to you.\nYou'll get your wish, sure.", fa: "" },
+  49: { en: "YOUR LUCK FOR TODAY–\nToday the number \"Forty–nine\"\nThe fates declare is very fine\nYOUR FORTUNE–\nInclined to trust to women\nall the secrets of your life\nThe fates advise you give it up\nand avoid much woe and strife\nExpect trouble from physical violence.\nNo chance for your wish today", fa: "" },
+  50: { en: "YOUR LUCK FOR TODAY–\nLuck in love is bad today\nbut in business, sure to pay.\nYOUR FORTUNE–\nAppearances to you seem good\nand fortune more than kind,\nbut you could win both wealth and fame\nif you were not so blind.\nYou will receive unjust treatment from a near relative\nYou may get your wish later on.", fa: "" },
+  51: { en: "YOUR LUCK FOR TODAY–\nIt's \"Fifty–one\", so have a care\nfor accidents today beware\nYOUR FORTUNE–\nIf you adopt an office life\nin shorthand or on books,\nYour best success will surely come\nThat's how your fortune looks.\nYou will suffer through extravagance.\nLater on you may get your wish.", fa: "" },
+  52: { en: "YOUR LUCK FOR TODAY–\nYou've drawn the number \"Fifty–two\",\nToday good luck is fair for you.\nYOUR FORTUNE–\nThe Chinamen this number hate,\nfor ill luck seems to lurk.\nAround the number \"Fifty–two\",\nNo money, lots of work.\nA hasty quarrel soon over a trifle.\nYou'll get your wish–may be.", fa: "" },
+  53: { en: "YOUR LUCK FOR TODAY–\nToday, in fact, for many days\nyour luck is good the same always.\nYOUR FORTUNE–\nA roving life will be your lot.\nYou'll smile and seldom moan\nand gather wealth sufficient\nTo fool the rolling stone.\nYou will shortly make a new friend to your great advantage.\nYou will get your wish.", fa: "" },
+  54: { en: "YOUR LUCK FOR TODAY–\nIf you've a wish for just today,\nit's surely yours the sages say.\nYOUR FORTUNE–\nToday you're full of happiness,\nnext day you're full of woe,\nbut content will be e'erlasting\nWhen you can and will say \"No\".\nYou will shortly recover a valuable that has been lost.\nYou will get your wish.", fa: "" },
+  55: { en: "YOUR LUCK FOR TODAY–\nA tricky number, so 'tis said\nGood if you're unmarried, bad if you are wed\nYOUR FORTUNE–\nIn early life your best success\nwill come, so we are told,\nSo if you're wise, you'll save a bit\nfor the days when you are old.\nAn incident very small to you, will shortly develop to your advantage.\nYou will not get your wish.", fa: "" },
+  56: { en: "YOUR LUCK FOR TODAY–\nIf you should draw a \"Fifty–six\"\nWith total strangers do not mix.\nYOUR FORTUNE–\nSome friends you thought were true\nYour actions criticize\nand try to make you enemies\nBut your loved ones are too wise.\nYou will soon discover friends from foes.\nYou may get your wish later on.", fa: "" },
+  57: { en: "YOUR LUCK FOR TODAY–\nThis number for today will bring\nthe best of luck for everything\nYOUR FORTUNE–\nA disposition changeable,\nYour whims you like to flaunt\nCapricious and extravagant\nYou may come to actual want.\nAmong many schemes, one will please you and prove profitable.\nYes, you'll get your wish.", fa: "" },
+  58: { en: "YOUR LUCK FOR TODAY–\nA day for fun and jollity\nGood for all frivolity\nYOUR FORTUNE–\nGuard your tongue with everyone\nor secrets you'll betray\nThat mean to you both wealth and fame,\nIf you don't give them away\nYou have many friends, but there is one envious of your happiness.\nWish for something better for your happiness.", fa: "" },
+  59: { en: "YOUR LUCK FOR TODAY–\nA lucky number every time\nfor one who draws a \"Fifty–nine\"\nYOUR FORTUNE–\nYou're too easy with your friends\nCurb yourself and do not loan\nOr else they'll soon have all the meat\nand leave you but the bone.\nWithin a month you will hear of something of great importance.\nYou will get your wish.", fa: "" },
+  60: { en: "YOUR LUCK FOR TODAY–\nHard work today and also care\nYour luck it seems is only fair\nYOUR FORTUNE–\nIf you seem to be old–fashioned\nDo not worry or despair.\nThe friends you make will love you so\nYou'll have no need to care.\nUnlooked for prosperity will come to you at a time when you least expect but most desire it.\nBy persistent effort only you will get your wish.", fa: "" }
+};
+
+</script>
+<script>
+(function () {
+  "use strict";
+
+  var TOTAL = 60;
+
+  // Interface languages. To add one, add an entry here (and its UI text below).
+  // Readings for that language go in readings.js under the same code.
+  var LANGS = {
+    en: { name: "English",  dir: "ltr" },
+    fa: { name: "فارسی",    dir: "rtl" },
+    ar: { name: "العربية",  dir: "rtl" },
+    zh: { name: "中文",      dir: "ltr" },
+    es: { name: "Español",  dir: "ltr" },
+    fr: { name: "Français", dir: "ltr" }
+  };
+
+  // Text of the buttons and labels only (never the readings).
+  var UI = {
+    en: { title: "Fortune Sticks", sub: "Quiet your mind. Shake the box.", shake: "Shake", again: "Draw again", copy: "Copy link", copied: "Link copied", tr: "Translate", trTo: "Translate to", trNote: "Machine translation by Google Translate", lang: "Language",
+          empty: "This reading has not been added yet.", fallback: "This reading is not available in your language yet. Shown in: " },
+    fa: { title: "چوب‌های فال", sub: "ذهن‌تان را آرام کنید. جعبه را تکان دهید.", shake: "تکان بده", again: "دوباره", copy: "کپی پیوند", copied: "پیوند کپی شد", tr: "ترجمه", trTo: "ترجمه به", trNote: "ترجمه ماشینی توسط Google Translate", lang: "زبان",
+          empty: "این فال هنوز اضافه نشده است.", fallback: "این فال هنوز به زبان شما موجود نیست. نمایش به زبان: " },
+    ar: { title: "عيدان الحظ", sub: "اهدأ. هزّ الصندوق.", shake: "هزّ", again: "مرة أخرى", copy: "نسخ الرابط", copied: "تم نسخ الرابط", tr: "ترجمة", trTo: "الترجمة إلى", trNote: "ترجمة آلية بواسطة Google Translate", lang: "اللغة",
+          empty: "لم تتم إضافة هذه القراءة بعد.", fallback: "هذه القراءة غير متوفرة بلغتك بعد. معروضة بلغة: " },
+    zh: { title: "灵签", sub: "静下心来，摇动签筒。", shake: "摇签", again: "再抽一次", copy: "复制链接", copied: "链接已复制", tr: "翻译", trTo: "翻译成", trNote: "由 Google 翻译机器翻译", lang: "语言",
+          empty: "此签文尚未添加。", fallback: "此签文暂无您所选的语言版本，显示语言：" },
+    es: { title: "Varillas del Destino", sub: "Calma tu mente. Agita la caja.", shake: "Agitar", again: "Otra vez", copy: "Copiar enlace", copied: "Enlace copiado", tr: "Traducir", trTo: "Traducir a", trNote: "Traducción automática de Google Translate", lang: "Idioma",
+          empty: "Esta lectura aún no se ha añadido.", fallback: "Esta lectura aún no está en tu idioma. Se muestra en: " },
+    fr: { title: "Bâtons de Fortune", sub: "Apaisez votre esprit. Secouez la boîte.", shake: "Secouer", again: "Retirer", copy: "Copier le lien", copied: "Lien copié", tr: "Traduire", trTo: "Traduire en", trNote: "Traduction automatique par Google Translate", lang: "Langue",
+          empty: "Cette lecture n'a pas encore été ajoutée.", fallback: "Cette lecture n'est pas encore disponible dans votre langue. Affichée en : " }
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var box = $("box"), chosen = $("chosen"), chosenNum = $("chosenNum");
+  var drawBtn = $("drawBtn"), againBtn = $("againBtn"), copyBtn = $("copyBtn");
+  var reading = $("reading"), readingNum = $("readingNum"), readingText = $("readingText"), readingNote = $("readingNote");
+  var langSelect = $("langSelect");
+
+  var lang = "en";
+  var current = null;   // number currently shown
+  var busy = false;
+
+  /* ---------- storage helpers (may be blocked in some browsers) ---------- */
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  /* ---------- fair random number 1..60 ---------- */
+  function randomNumber() {
+    if (window.crypto && crypto.getRandomValues) {
+      var max = Math.floor(0x100000000 / TOTAL) * TOTAL, buf = new Uint32Array(1);
+      do { crypto.getRandomValues(buf); } while (buf[0] >= max);
+      return (buf[0] % TOTAL) + 1;
+    }
+    return Math.floor(Math.random() * TOTAL) + 1;
+  }
+
+  function fmt(n) {
+    try { return new Intl.NumberFormat(lang === "fa" ? "fa-IR" : lang === "ar" ? "ar-EG" : lang).format(n); }
+    catch (e) { return String(n); }
+  }
+
+  /* ---------- Chinese numerals (1-60) ---------- */
+  function zhNum(n) {
+    var d = ["一","二","三","四","五","六","七","八","九"];
+    var t = Math.floor(n / 10), o = n % 10;
+    return (t > 1 ? d[t - 1] : "") + (t >= 1 ? "十" : "") + (o ? d[o - 1] : "");
+  }
+
+  /* ---------- decorative sticks in the box ---------- */
+  (function buildSticks() {
+    var wrap = $("sticks"), nums = [7, 23, 41, 3, 56, 18, 30, 49, 12], count = nums.length;
+    for (var i = 0; i < count; i++) {
+      var s = document.createElement("div");
+      s.className = "stick";
+      var t = i / (count - 1) - 0.5;                 // -0.5 .. 0.5
+      s.style.setProperty("--x", (t * 112).toFixed(1) + "px");
+      s.style.setProperty("--r", (t * 10 + ((i % 3) - 1) * 1.2).toFixed(1) + "deg");
+      s.style.height = (270 + (i % 4) * 7) + "px";
+      var z = document.createElement("span");
+      z.className = "zh"; z.textContent = zhNum(nums[i]);
+      s.appendChild(z);
+      wrap.appendChild(s);
+    }
+  })();
+
+  /* ---------- translate link (opens Google Translate in a new tab) ---------- */
+  var TR = [["en","English"],["fa","فارسی"],["ar","العربية"],["zh-CN","中文 (简体)"],["zh-TW","中文 (繁體)"],
+    ["es","Español"],["fr","Français"],["de","Deutsch"],["it","Italiano"],["pt","Português"],["ru","Русский"],
+    ["tr","Türkçe"],["hi","हिन्दी"],["bn","বাংলা"],["ur","اردو"],["id","Bahasa Indonesia"],["ms","Bahasa Melayu"],
+    ["ja","日本語"],["ko","한국어"],["vi","Tiếng Việt"],["th","ไทย"],["nl","Nederlands"],["pl","Polski"],
+    ["uk","Українська"],["he","עברית"],["el","Ελληνικά"],["sv","Svenska"],["ro","Română"],["az","Azərbaycanca"]];
+  var trSelect = $("trSelect"), trLink = $("trLink"), trText = "";
+  TR.forEach(function (p) {
+    var o = document.createElement("option"); o.value = p[0]; o.textContent = p[1]; trSelect.appendChild(o);
+  });
+  function pickTrLang() {
+    var saved = load("fs_tr");
+    if (saved && TR.some(function (p) { return p[0] === saved; })) return saved;
+    var list = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || "en"];
+    for (var i = 0; i < list.length; i++) {
+      var code = String(list[i]).toLowerCase(), base = code.split("-")[0];
+      if (base === "zh") return /tw|hk|hant/.test(code) ? "zh-TW" : "zh-CN";
+      for (var j = 0; j < TR.length; j++) if (TR[j][0].toLowerCase() === base) return TR[j][0];
+    }
+    return "en";
+  }
+  function updateTrLink() {
+    trLink.href = "https://translate.google.com/?sl=auto&tl=" + encodeURIComponent(trSelect.value) +
+      "&text=" + encodeURIComponent(trText) + "&op=translate";
+  }
+  trSelect.value = pickTrLang();
+  trSelect.addEventListener("change", function () { store("fs_tr", trSelect.value); updateTrLink(); });
+
+  /* ---------- language ---------- */
+  Object.keys(LANGS).forEach(function (code) {
+    var o = document.createElement("option");
+    o.value = code; o.textContent = LANGS[code].name;
+    langSelect.appendChild(o);
+  });
+
+  function pickInitialLang() {
+    var saved = load("fs_lang");
+    if (saved && LANGS[saved]) return saved;
+    var nav = (navigator.language || "en").slice(0, 2).toLowerCase();
+    return LANGS[nav] ? nav : "en";
+  }
+
+  function applyLang(code) {
+    lang = code;
+    document.documentElement.lang = code;
+    document.documentElement.dir = LANGS[code].dir;
+    langSelect.value = code;
+    var t = UI[code];
+    $("title").textContent = t.title;
+    document.title = t.title;
+    $("subtitle").textContent = t.sub;
+    drawBtn.textContent = t.shake;
+    againBtn.textContent = t.again;
+    copyBtn.textContent = t.copy;
+    $("langLabel").textContent = t.lang;
+    trLink.textContent = t.tr; $("trLabel").textContent = t.trTo; $("trNote").textContent = t.trNote;
+    store("fs_lang", code);
+    if (current) renderReading(current);
+  }
+
+  langSelect.addEventListener("change", function () { applyLang(langSelect.value); });
+
+  /* ---------- reading ---------- */
+  function renderReading(n) {
+    var entry = (window.READINGS && window.READINGS[n]) || {};
+    var t = UI[lang];
+    var text = (entry[lang] || "").trim();
+    var note = "";
+    var used = lang;
+
+    if (!text) {
+      var codes = Object.keys(LANGS);
+      for (var i = 0; i < codes.length; i++) {
+        var c = codes[i];
+        if ((entry[c] || "").trim()) { text = entry[c].trim(); used = c; note = t.fallback + LANGS[c].name; break; }
+      }
+    }
+
+    readingNum.textContent = fmt(n);
+    readingText.classList.toggle("empty", !text);
+    readingText.textContent = text || t.empty;
+    readingNote.hidden = !note;
+    var head = text && window.READING_HEADER ? (window.READING_HEADER[used] || "").trim() : "";
+    var hEl = $("readingHeader");
+    hEl.textContent = head; hEl.hidden = !head;
+    hEl.dir = LANGS[used].dir;
+    trText = text ? ((head ? head + "\n\n" : "") + text) : "";
+    $("translateRow").hidden = !text;
+    updateTrLink();
+    readingNote.textContent = note;
+    // keep the riddle's own direction when shown in a fallback language
+    reading.hidden = false;
+  }
+
+  function showStickOut(n, instant) {
+    chosenNum.textContent = zhNum(n);
+    if (instant) {
+      chosen.style.transition = "none";
+      box.classList.add("out");
+      void chosen.offsetWidth;
+      chosen.style.transition = "";
+    } else {
+      box.classList.add("out");
+    }
+  }
+
+  function reset() {
+    box.classList.remove("out");
+    reading.hidden = true;
+    linkOut.hidden = true;
+    current = null;
+  }
+
+  /* ---------- drawing ---------- */
+  function draw() {
+    if (busy) return;
+    busy = true;
+    drawBtn.disabled = true;
+    reset();
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+
+    // let the stick settle back inside before shaking again
+    setTimeout(function () {
+      box.classList.add("shaking");
+
+      setTimeout(function () {
+        box.classList.remove("shaking");
+        var n = randomNumber();
+        current = n;
+        showStickOut(n, false);
+
+        setTimeout(function () {
+          renderReading(n);
+          try { history.replaceState(null, "", "#" + n); } catch (e) { location.hash = n; }
+          reading.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          busy = false;
+          drawBtn.disabled = false;
+        }, 1500);
+      }, 1300);
+    }, 350);
+  }
+
+  drawBtn.addEventListener("click", function () { draw(); });
+  againBtn.addEventListener("click", function () {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    draw();
+  });
+
+  var linkOut = $("linkOut");
+  copyBtn.addEventListener("click", function () {
+    var url = location.href;
+    var showLink = function () {
+      linkOut.textContent = url; linkOut.hidden = false;
+      try { var r = document.createRange(); r.selectNodeContents(linkOut); var s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+    };
+    var done = function () {
+      copyBtn.textContent = UI[lang].copied;
+      setTimeout(function () { copyBtn.textContent = UI[lang].copy; }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, showLink);
+    } else { showLink(); }
+  });
+
+  /* ---------- open a shared link like  #17 ---------- */
+  function fromHash() {
+    var n = parseInt((location.hash || "").replace("#", ""), 10);
+    if (n >= 1 && n <= TOTAL && !busy) {
+      current = n;
+      showStickOut(n, true);
+      renderReading(n);
+    }
+  }
+  window.addEventListener("hashchange", fromHash);
+
+  applyLang(pickInitialLang());
+  fromHash();
+})();
+
+</script>
+</body>
+</html>
